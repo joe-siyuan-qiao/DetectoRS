@@ -1,13 +1,16 @@
 from torch import nn as nn
 
-from .conv_ws import ConvWS2d
+from .conv_ws import ConvWS2d, ConvAWS2d
 from .dcn import DeformConvPack, ModulatedDeformConvPack
+from .saconv import SAConv2d
 
 conv_cfg = {
     'Conv': nn.Conv2d,
     'ConvWS': ConvWS2d,
     'DCN': DeformConvPack,
     'DCNv2': ModulatedDeformConvPack,
+    'ConvAWS': ConvAWS2d,
+    'SAC': SAConv2d,
     # TODO: octave conv
 }
 

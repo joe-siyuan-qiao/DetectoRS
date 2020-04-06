@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.utils.checkpoint as cp
 from mmcv.cnn import constant_init, kaiming_init
@@ -96,6 +97,8 @@ class Bottleneck(nn.Module):
                  norm_cfg=dict(type='BN'),
                  dcn=None,
                  gcb=None,
+                 sac=None,
+                 rfp=None,
                  gen_attention=None):
         """Bottleneck block for ResNet.
         If style is "pytorch", the stride-two layer is the 3x3 conv layer,
@@ -105,6 +108,7 @@ class Bottleneck(nn.Module):
         assert style in ['pytorch', 'caffe']
         assert dcn is None or isinstance(dcn, dict)
         assert gcb is None or isinstance(gcb, dict)
+        assert sac is None or isinstance(sac, dict)
         assert gen_attention is None or isinstance(gen_attention, dict)
 
         self.inplanes = inplanes
@@ -119,6 +123,8 @@ class Bottleneck(nn.Module):
         self.with_dcn = dcn is not None
         self.gcb = gcb
         self.with_gcb = gcb is not None
+        self.sac = sac
+        self.with_sac = sac is not None
         self.gen_attention = gen_attention
         self.with_gen_attention = gen_attention is not None
 
@@ -145,7 +151,17 @@ class Bottleneck(nn.Module):
         fallback_on_stride = False
         if self.with_dcn:
             fallback_on_stride = dcn.pop('fallback_on_stride', False)
-        if not self.with_dcn or fallback_on_stride:
+        if self.with_sac:
+            self.conv2 = build_conv_layer(
+                sac,
+                planes,
+                planes,
+                kernel_size=3,
+                stride=self.conv2_stride,
+                padding=dilation,
+                dilation=dilation,
+                bias=False)
+        elif not self.with_dcn or fallback_on_stride:
             self.conv2 = build_conv_layer(
                 conv_cfg,
                 planes,
@@ -187,6 +203,18 @@ class Bottleneck(nn.Module):
         if self.with_gen_attention:
             self.gen_attention_block = GeneralizedAttention(
                 planes, **gen_attention)
+
+        # recursive feature pyramid
+        self.rfp = rfp
+        if self.rfp:
+            self.rfp_conv = torch.nn.Conv2d(
+                self.rfp,
+                planes * self.expansion,
+                kernel_size=1,
+                stride=1,
+                bias=True)
+            self.rfp_conv.weight.data.fill_(0)
+            self.rfp_conv.bias.data.fill_(0)
 
     @property
     def norm1(self):
@@ -238,6 +266,48 @@ class Bottleneck(nn.Module):
 
         return out
 
+    def rfp_forward(self, x, rfp_feat):
+
+        def _inner_forward(x):
+            identity = x
+
+            out = self.conv1(x)
+            out = self.norm1(out)
+            out = self.relu(out)
+
+            out = self.conv2(out)
+            out = self.norm2(out)
+            out = self.relu(out)
+
+            if self.with_gen_attention:
+                out = self.gen_attention_block(out)
+
+            out = self.conv3(out)
+            out = self.norm3(out)
+
+            if self.with_gcb:
+                out = self.context_block(out)
+
+            if self.downsample is not None:
+                identity = self.downsample(x)
+
+            out += identity
+
+            return out
+
+        if self.with_cp and x.requires_grad:
+            out = cp.checkpoint(_inner_forward, x)
+        else:
+            out = _inner_forward(x)
+
+        if self.rfp:
+            rfp_feat = self.rfp_conv(rfp_feat)
+            out = out + rfp_feat
+
+        out = self.relu(out)
+
+        return out
+
 
 def make_res_layer(block,
                    inplanes,
@@ -251,6 +321,8 @@ def make_res_layer(block,
                    norm_cfg=dict(type='BN'),
                    dcn=None,
                    gcb=None,
+                   sac=None,
+                   rfp=None,
                    gen_attention=None,
                    gen_attention_blocks=[]):
     downsample = None
@@ -280,6 +352,8 @@ def make_res_layer(block,
             norm_cfg=norm_cfg,
             dcn=dcn,
             gcb=gcb,
+            sac=sac,
+            rfp=rfp,
             gen_attention=gen_attention if
             (0 in gen_attention_blocks) else None))
     inplanes = planes * block.expansion
@@ -296,6 +370,7 @@ def make_res_layer(block,
                 norm_cfg=norm_cfg,
                 dcn=dcn,
                 gcb=gcb,
+                sac=sac,
                 gen_attention=gen_attention if
                 (i in gen_attention_blocks) else None))
 
@@ -366,6 +441,10 @@ class ResNet(nn.Module):
                  stage_with_dcn=(False, False, False, False),
                  gcb=None,
                  stage_with_gcb=(False, False, False, False),
+                 sac=None,
+                 stage_with_sac=(False, False, False, False),
+                 rfp=None,
+                 stage_with_rfp=(False, True, True, True),
                  gen_attention=None,
                  stage_with_gen_attention=((), (), (), ()),
                  with_cp=False,
@@ -396,6 +475,10 @@ class ResNet(nn.Module):
         self.stage_with_gcb = stage_with_gcb
         if gcb is not None:
             assert len(stage_with_gcb) == num_stages
+        self.sac = sac
+        self.stage_with_sac = stage_with_sac
+        self.rfp = rfp
+        self.stage_with_rfp = stage_with_rfp
         self.zero_init_residual = zero_init_residual
         self.block, stage_blocks = self.arch_settings[depth]
         self.stage_blocks = stage_blocks[:num_stages]
@@ -409,6 +492,8 @@ class ResNet(nn.Module):
             dilation = dilations[i]
             dcn = self.dcn if self.stage_with_dcn[i] else None
             gcb = self.gcb if self.stage_with_gcb[i] else None
+            sac = self.sac if self.stage_with_sac[i] else None
+            rfp = self.rfp if self.stage_with_rfp[i] else None
             planes = 64 * 2**i
             res_layer = make_res_layer(
                 self.block,
@@ -423,6 +508,8 @@ class ResNet(nn.Module):
                 norm_cfg=norm_cfg,
                 dcn=dcn,
                 gcb=gcb,
+                sac=sac,
+                rfp=rfp,
                 gen_attention=gen_attention,
                 gen_attention_blocks=stage_with_gen_attention[i])
             self.inplanes = planes * self.block.expansion
@@ -501,6 +588,23 @@ class ResNet(nn.Module):
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
             x = res_layer(x)
+            if i in self.out_indices:
+                outs.append(x)
+        return tuple(outs)
+
+    def rfp_forward(self, x, rfp_feats):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        outs = []
+        for i, layer_name in enumerate(self.res_layers):
+            res_layer = getattr(self, layer_name)
+            rfp_feat = None
+            if self.stage_with_rfp[i]:
+                rfp_feat = rfp_feats[i]
+            for layer in res_layer:
+                x = layer.rfp_forward(x, rfp_feat)
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)
