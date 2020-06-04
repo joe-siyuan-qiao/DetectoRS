@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repo holds the code for [DetectoRS: Detecting Objects with Recursive Feature Pyramid and Switchable Atrous Convolution](https://arxiv.org/abs/2006.????).
+This repo holds the code for [DetectoRS: Detecting Objects with Recursive Feature Pyramid and Switchable Atrous Convolution](https://arxiv.org/pdf/2006.02334.pdf).
 The project is based on [mmdetection codebase](https://github.com/open-mmlab/mmdetection).
 Please refer to [mmdetection readme](README.mmdet.md) for installation and running scripts.
 
@@ -21,7 +21,7 @@ If you think DetectoRS is useful in your project, please consider citing us.
 @article{detectors,
   title={DetectoRS: Detecting Objects with Recursive Feature Pyramid and Switchable Atrous Convolution},
   author={Qiao, Siyuan and Chen, Liang-Chieh and Yuille, Alan},
-  journal={arXiv preprint arXiv:2006.????},
+  journal={arXiv preprint arXiv:2006.02334},
   year={2020}
 }
 ```
