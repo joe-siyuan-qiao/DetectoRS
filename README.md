@@ -5,6 +5,9 @@
 This repo holds the code for [DetectoRS: Detecting Objects with Recursive Feature Pyramid and Switchable Atrous Convolution](https://arxiv.org/pdf/2006.02334.pdf).
 The project is based on [mmdetection codebase](https://github.com/open-mmlab/mmdetection).
 Please refer to [mmdetection readme](README.mmdet.md) for installation and running scripts.
+The code is tested with PyTorch 1.4.0.
+It may not run with other versions.
+See [conda_env.md](conda_env.md) for the versions of all the packages.
 
 ## Main Results on COCO test-dev
 
