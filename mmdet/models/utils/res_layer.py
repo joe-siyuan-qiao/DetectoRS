@@ -65,6 +65,7 @@ class ResLayer(nn.Sequential):
                 conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
                 **kwargs))
+        kwargs.pop("rfp_inp", False)
         inplanes = planes * block.expansion
         for i in range(1, num_blocks):
             layers.append(
