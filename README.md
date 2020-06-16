@@ -1,5 +1,9 @@
 # DetectoRS
 
+## News
+
+[06/15/2020] We have released the implementation of DetectoRS based on mmdetection-v2 in the branch **mmdetv2**, which allows more detectors to use RFP and SAC.
+
 ## Introduction
 
 This repo holds the code for [DetectoRS: Detecting Objects with Recursive Feature Pyramid and Switchable Atrous Convolution](https://arxiv.org/pdf/2006.02334.pdf).
