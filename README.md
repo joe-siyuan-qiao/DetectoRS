@@ -7,7 +7,7 @@ The project is based on [mmdetection-v2](https://github.com/open-mmlab/mmdetecti
 Please refer to [mmdetection readme](README.mmdet.md) for installation and running scripts.
 Please see the master branch for the original implementation based on mmdetection-v1.
 
-## Results on COCO test-dev
+## Results on COCO 2017 val
 
 | Method    | Detector          | lr | Config | Log | Model | Box AP | Mask AP |
 |-----------|:-----------------:|:--:|:--------------:|:--------------:|:--------------:|:------------:|:------------:|
