@@ -2,6 +2,9 @@
 
 ## News
 
+[06/30/2020] DetectoRS is now officially supported by [MMDetection](https://github.com/open-mmlab/mmdetection).
+A huge thanks to [@xvjiarui](https://github.com/xvjiarui), [@ZwwWayne](https://github.com/ZwwWayne) and [@hellock](https://github.com/hellock) for helping migrating the code.
+
 [06/15/2020] We have released the implementation of DetectoRS based on mmdetection-v2 in the branch **mmdetv2**, which allows more detectors to use RFP and SAC.
 
 ## Introduction
