@@ -51,7 +51,8 @@ def nms(dets, iou_thr, device_id=None):
         inds = dets_th.new_zeros(0, dtype=torch.long)
     else:
         if dets_th.is_cuda:
-            inds = nms_cuda.nms(dets_th, iou_thr)
+            # inds = nms_cuda.nms(dets_th, iou_thr)
+            inds = nms_cuda.nms(dets_th.cpu(), iou_thr).cuda()
         else:
             inds = nms_cpu.nms(dets_th, iou_thr)
 

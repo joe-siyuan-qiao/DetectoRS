@@ -306,7 +306,7 @@ class Pad(object):
         pad_shape = results['pad_shape'][:2]
         for key in results.get('mask_fields', []):
             padded_masks = [
-                mmcv.impad(mask, pad_shape, pad_val=self.pad_val)
+                mmcv.impad(mask, shape=pad_shape, pad_val=self.pad_val)
                 for mask in results[key]
             ]
             if padded_masks:
