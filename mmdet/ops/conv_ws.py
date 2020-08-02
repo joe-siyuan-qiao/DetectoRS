@@ -81,7 +81,7 @@ class ConvAWS2d(nn.Conv2d):
 
     def forward(self, x):
         weight = self._get_weight(self.weight)
-        return super().conv2d_forward(x, weight)
+        return super()._conv_forward(x, weight)
 
     def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
                               missing_keys, unexpected_keys, error_msgs):

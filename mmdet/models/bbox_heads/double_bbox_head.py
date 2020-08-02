@@ -1,5 +1,5 @@
 import torch.nn as nn
-from mmcv.cnn.weight_init import normal_init, xavier_init
+from mmcv.cnn import normal_init, xavier_init
 
 from mmdet.ops import ConvModule
 from ..backbones.resnet import Bottleneck
